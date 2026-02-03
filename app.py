@@ -91,43 +91,44 @@ df["Selected"] = df["Strength_OK"] & df["UTS_OK"] & df["Safety_OK"]
 selected_df = df[df["Selected"]].reset_index(drop=True)
 
 # --------------------------------------------------
-# ASHBY & MECHANICAL INDICES
+# ASHBY & MECHANICAL INDICES (FOR ALL DATA)
 # --------------------------------------------------
-selected_df["Ashby_Strength_Density"] = (
-    selected_df["Yield_Strength"] / selected_df["Density"]
-)
-
-selected_df["Safety_Index"] = (
-    selected_df["Yield_Strength"] / allowable_stress
-)
-
-# Yield / UTS ratio → ductility / failure margin indicator
-selected_df["Yield_to_UTS_Ratio"] = (
-    selected_df["Yield_Strength"] / selected_df["UTS"]
-)
+df["Ashby_Strength_Density"] = df["Yield_Strength"] / df["Density"]
+df["Yield_to_UTS_Ratio"] = df["Yield_Strength"] / df["UTS"]
+df["Safety_Index"] = df["Yield_Strength"] / allowable_stress
 
 # --------------------------------------------------
-# OUTPUT TABLE
+# FILTERED DATA (FOR TABLE)
 # --------------------------------------------------
+selected_df = df[df["Selected"]].reset_index(drop=True)
+
 st.subheader("Suitable Steel Conditions")
 
-st.dataframe(
-    selected_df.sort_values(
-        by=["Ashby_Strength_Density", "Yield_to_UTS_Ratio"],
-        ascending=[False, True]
-    ),
-    use_container_width=True
-)
+if selected_df.empty:
+    st.warning(
+        "⚠️ No steel satisfies the current design requirements. "
+        "Relax Yield Strength, UTS, or Factor of Safety."
+    )
+else:
+    st.dataframe(
+        selected_df.sort_values(
+            by=["Ashby_Strength_Density", "Yield_to_UTS_Ratio"],
+            ascending=[False, True]
+        ),
+        use_container_width=True
+    )
 
 # --------------------------------------------------
-# INTERACTIVE ASHBY PLOT (PLOTLY)
+# INTERACTIVE ASHBY PLOT (ALL DATA)
 # --------------------------------------------------
-st.subheader("Ashby Selection Map")
+st.subheader("Ashby Selection Map (Green = Meets Criteria)")
 
 fig = px.scatter(
-    selected_df,
+    df,
     x="Ashby_Strength_Density",
     y="Yield_to_UTS_Ratio",
+    color="Selected",
+    color_discrete_map={True: "lime", False: "red"},
     hover_data=[
         "Yield_Strength",
         "UTS",
@@ -149,11 +150,11 @@ selected_points = plotly_events(
 )
 
 # --------------------------------------------------
-# HIGHLIGHT CLICKED POINT IN TABLE
+# HIGHLIGHT CLICKED POINT
 # --------------------------------------------------
 if selected_points:
     idx = selected_points[0]["pointIndex"]
-    highlighted_row = selected_df.iloc[[idx]]
+    highlighted_row = df.iloc[[idx]]
 
     st.subheader("Selected Steel (from Ashby plot)")
     st.dataframe(
@@ -163,6 +164,7 @@ if selected_points:
         ),
         use_container_width=True
     )
+
 
 # --------------------------------------------------
 # USER GUIDANCE
