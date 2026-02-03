@@ -8,7 +8,7 @@ from streamlit_plotly_events import plotly_events
 # --------------------------------------------------
 st.set_page_config(page_title="Steel Selection Framework", layout="wide")
 
-st.title("🛠️ Interactive Steel Selection Tool")
+st.title("Interactive Steel Selection Tool")
 st.markdown(
     "Steel selection based on **Yield Strength**, **UTS**, **Safety** and **Ashby material indices**"
 )
@@ -36,7 +36,7 @@ max_uts = df["UTS"].max()
 # --------------------------------------------------
 # SIDEBAR INPUTS
 # --------------------------------------------------
-st.sidebar.header("🔧 Design Requirements")
+st.sidebar.header("Design Requirements")
 
 fos = st.sidebar.slider(
     "Factor of Safety",
@@ -66,7 +66,7 @@ allowable_stress = required_yield / fos
 # --------------------------------------------------
 # SHOW DATA CONSTRAINTS (FOR NEW USERS)
 # --------------------------------------------------
-st.sidebar.markdown("### 📊 Data-Based Limits")
+st.sidebar.markdown("### Data-Based Limits")
 st.sidebar.info(
     f"""
     **Yield Strength range:**  
@@ -122,7 +122,7 @@ st.dataframe(
 # --------------------------------------------------
 # INTERACTIVE ASHBY PLOT (PLOTLY)
 # --------------------------------------------------
-st.subheader("Ashby Selection Map (Click a point)")
+st.subheader("Ashby Selection Map")
 
 fig = px.scatter(
     selected_df,
@@ -140,7 +140,6 @@ fig = px.scatter(
     title="Ashby Selection Map"
 )
 
-# Capture click events
 selected_points = plotly_events(
     fig,
     click_event=True,
@@ -148,8 +147,6 @@ selected_points = plotly_events(
     select_event=False,
     override_height=500
 )
-
-st.plotly_chart(fig, use_container_width=True)
 
 # --------------------------------------------------
 # HIGHLIGHT CLICKED POINT IN TABLE
