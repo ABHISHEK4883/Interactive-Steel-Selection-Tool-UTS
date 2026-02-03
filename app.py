@@ -60,7 +60,7 @@ allowable_stress = required_yield / fos
 # --------------------------------------------------
 # 🔹 SHOW DATA-BASED LIMITS
 # --------------------------------------------------
-st.sidebar.markdown("### 📊 Data-Based Limits")
+st.sidebar.markdown("### Data-Based Limits")
 st.sidebar.info(
     f"""
     **Yield Strength Range:**  
@@ -96,7 +96,7 @@ selected_df['Yield_to_UTS_Ratio'] = selected_df['Yield_Strength'] / selected_df[
 # --------------------------------------------------
 # 🔹 OUTPUT TABLE
 # --------------------------------------------------
-st.subheader("✅ Suitable Steel Conditions")
+st.subheader("Suitable Steel Conditions")
 
 st.dataframe(
     selected_df.sort_values(
@@ -108,7 +108,7 @@ st.dataframe(
 # --------------------------------------------------
 # 🔹 ASHBY PLOT
 # --------------------------------------------------
-st.subheader("📈 Ashby Selection Map")
+st.subheader("Ashby Selection Map")
 
 fig, ax = plt.subplots()
 ax.scatter(
