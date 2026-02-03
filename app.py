@@ -8,7 +8,7 @@ from streamlit_plotly_events import plotly_events
 # --------------------------------------------------
 st.set_page_config(page_title="Steel Selection Framework", layout="wide")
 
-st.title("Interactive Steel Selection Tool")
+st.title("🛠️ Interactive Steel Selection Tool")
 st.markdown(
     "Steel selection based on **Yield Strength**, **UTS**, **Safety** and **Ashby material indices**"
 )
@@ -19,7 +19,8 @@ st.markdown(
 @st.cache_data
 def load_data():
     df = pd.read_excel("Final_Steel_Selection_Results.xlsx")
-    df["Density"] = 7850  # kg/m3 for steel
+    df["Density"] = 7850
+    df["row_id"] = df.index.astype(int)  # ✅ stable ID
     return df
 
 df = load_data()
@@ -38,45 +39,33 @@ max_uts = df["UTS"].max()
 # --------------------------------------------------
 st.sidebar.header("Design Requirements")
 
-fos = st.sidebar.slider(
-    "Factor of Safety",
-    min_value=1.2,
-    max_value=3.0,
-    value=1.7,
-    step=0.1
-)
+fos = st.sidebar.slider("Factor of Safety", 1.2, 3.0, 1.7, 0.1)
 
 required_yield = st.sidebar.slider(
     "Required Yield Strength (MPa)",
-    min_value=float(min_yield),
-    max_value=float(max_yield),
-    value=float(min_yield)
+    float(min_yield),
+    float(max_yield),
+    float(min_yield)
 )
 
 required_uts = st.sidebar.slider(
     "Minimum UTS Requirement (MPa)",
-    min_value=float(min_uts),
-    max_value=float(max_uts),
-    value=float(min_uts)
+    float(min_uts),
+    float(max_uts),
+    float(min_uts)
 )
 
-# Allowable stress derived from yield strength
 allowable_stress = required_yield / fos
 
 # --------------------------------------------------
-# SHOW DATA CONSTRAINTS (FOR NEW USERS)
+# DATA CONSTRAINT DISPLAY
 # --------------------------------------------------
 st.sidebar.markdown("### Data-Based Limits")
 st.sidebar.info(
     f"""
-    **Yield Strength range:**  
-    {min_yield:.1f} – {max_yield:.1f} MPa
-
-    **UTS range:**  
-    {min_uts:.1f} – {max_uts:.1f} MPa
-
-    **Allowable stress range (FoS = {fos}):**  
-    {(min_yield/fos):.1f} – {(max_yield/fos):.1f} MPa
+    **Yield Strength:** {min_yield:.1f} – {max_yield:.1f} MPa  
+    **UTS:** {min_uts:.1f} – {max_uts:.1f} MPa  
+    **Allowable Stress (FoS={fos}):** {(min_yield/fos):.1f} – {(max_yield/fos):.1f} MPa
     """
 )
 
@@ -88,25 +77,24 @@ df["UTS_OK"] = df["UTS"] >= required_uts
 df["Safety_OK"] = df["Yield_Strength"] >= allowable_stress
 
 df["Selected"] = df["Strength_OK"] & df["UTS_OK"] & df["Safety_OK"]
-selected_df = df[df["Selected"]].reset_index(drop=True)
 
 # --------------------------------------------------
-# ASHBY & MECHANICAL INDICES (FOR ALL DATA)
+# ASHBY & MECHANICAL INDICES (ALL DATA)
 # --------------------------------------------------
 df["Ashby_Strength_Density"] = df["Yield_Strength"] / df["Density"]
 df["Yield_to_UTS_Ratio"] = df["Yield_Strength"] / df["UTS"]
 df["Safety_Index"] = df["Yield_Strength"] / allowable_stress
 
 # --------------------------------------------------
-# FILTERED DATA (FOR TABLE)
+# FILTERED TABLE
 # --------------------------------------------------
-selected_df = df[df["Selected"]].reset_index(drop=True)
-
 st.subheader("Suitable Steel Conditions")
+
+selected_df = df[df["Selected"]]
 
 if selected_df.empty:
     st.warning(
-        "⚠️ No steel satisfies the current design requirements. "
+        "No steel satisfies the current requirements. "
         "Relax Yield Strength, UTS, or Factor of Safety."
     )
 else:
@@ -119,7 +107,7 @@ else:
     )
 
 # --------------------------------------------------
-# INTERACTIVE ASHBY PLOT (ALL DATA)
+# INTERACTIVE ASHBY MAP (ALL DATA)
 # --------------------------------------------------
 st.subheader("Ashby Selection Map (Green = Meets Criteria)")
 
@@ -129,11 +117,8 @@ fig = px.scatter(
     y="Yield_to_UTS_Ratio",
     color="Selected",
     color_discrete_map={True: "lime", False: "red"},
-    hover_data=[
-        "Yield_Strength",
-        "UTS",
-        "Safety_Index"
-    ],
+    custom_data=["row_id"],   # ✅ critical
+    hover_data=["Yield_Strength", "UTS", "Safety_Index"],
     labels={
         "Ashby_Strength_Density": "Strength / Density",
         "Yield_to_UTS_Ratio": "Yield / UTS Ratio"
@@ -150,13 +135,13 @@ selected_points = plotly_events(
 )
 
 # --------------------------------------------------
-# HIGHLIGHT CLICKED POINT
+# CLICK → TABLE HIGHLIGHT (ROBUST)
 # --------------------------------------------------
 if selected_points:
-    idx = selected_points[0]["pointIndex"]
-    highlighted_row = df.iloc[[idx]]
+    clicked_row_id = selected_points[0]["customdata"][0]
+    highlighted_row = df[df["row_id"] == clicked_row_id]
 
-    st.subheader("Selected Steel (from Ashby plot)")
+    st.subheader("🔍 Selected Steel (from Ashby plot)")
     st.dataframe(
         highlighted_row.style.apply(
             lambda x: ["background-color: #fff3b0"] * len(x),
@@ -165,11 +150,10 @@ if selected_points:
         use_container_width=True
     )
 
-
 # --------------------------------------------------
 # USER GUIDANCE
 # --------------------------------------------------
 st.caption(
-    "Selection is constrained by available experimental data and "
-    "allowable stress is derived from yield strength using a factor of safety."
+    "Selection is constrained by available experimental data. "
+    "Allowable stress is derived from yield strength using a factor of safety."
 )
